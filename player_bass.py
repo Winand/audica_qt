@@ -5,23 +5,27 @@ Created on Wed Apr 03 16:17:49 2013
 @author: Winand
 """
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 from bass import pybass as bass, pytags as tags
 h = 0
-    
+
+class SignalWrapper(QtCore.QObject):
+    stream_loaded = QtCore.pyqtSignal()
+signal_wrapper = SignalWrapper()
+
 def __openStream(thread, source):
     global h
-    h = bass.BASS_StreamCreateFile(False, source, 0, 0, 0)
+    h = bass.BASS_StreamCreateFile(False, source.encode(), 0, 0, 0)
 #    h = bass.BASS_StreamCreateURL(u'http://94.25.53.133/ultra-192.m3u', 0, \
 #        bass.BASS_STREAM_BLOCK + bass.BASS_STREAM_STATUS + bass.BASS_STREAM_AUTOFREE + bass.BASS_UNICODE, bass.DOWNLOADPROC(), 0)
 #    print bass.BASS_ErrorGetCode()
 #    print h
     bass.BASS_ChannelPlay(h, False)
-    thread.emit(QtCore.SIGNAL('stream_loaded()'))
+    signal_wrapper.stream_loaded.emit()
         
 def streamCreate(source, is_remote=0, offset=0, length=0, callback=None):
     thd = GenericThread(__openStream, source)
-    QtCore.QObject.connect(thd, QtCore.SIGNAL("stream_loaded()"), callback)
+    signal_wrapper.stream_loaded.connect(callback)
     thd.start()
     
 def init():
@@ -40,8 +44,8 @@ def goToOggLink(link):
     bass.BASS_ChannelSetPosition(h, link, bass.BASS_POS_OGG)
     
 def getOggTags():
-    print tags.TAGS_Read(h, "%UTF8(%ALBM\6%ARTI\6%CMNT\6%COMP\6%COPY\6%GNRE\6%TITL\6%TRCK\6%YEAR)")==tags.TAGS_Read(h, "%UTF8(%IFV1(%ALBM,%ALBM)\6%IFV1(%ARTI,%ARTI)\6%IFV1(%CMNT,%CMNT)\6%IFV1(%COMP,%COMP)\6%IFV1(%COPY,%COPY)\6%IFV1(%GNRE,%GNRE)\6%IFV1(%TITL,%TITL)\6%IFV1(%TRCK,%TRCK)\6%YEAR)")
-    return tags.TAGS_Read(h, "%UTF8(%ALBM\6%ARTI\6%CMNT\6%COMP\6%COPY\6%GNRE\6%TITL\6%TRCK\6%YEAR\6%SUBT\6%AART\6%DISC)").split('\6')
+    print (tags.TAGS_Read(h, "%UTF8(%ALBM\6%ARTI\6%CMNT\6%COMP\6%COPY\6%GNRE\6%TITL\6%TRCK\6%YEAR)".encode())==tags.TAGS_Read(h, "%UTF8(%IFV1(%ALBM,%ALBM)\6%IFV1(%ARTI,%ARTI)\6%IFV1(%CMNT,%CMNT)\6%IFV1(%COMP,%COMP)\6%IFV1(%COPY,%COPY)\6%IFV1(%GNRE,%GNRE)\6%IFV1(%TITL,%TITL)\6%IFV1(%TRCK,%TRCK)\6%YEAR)".encode()))
+    return tags.TAGS_Read(h, "%UTF8(%ALBM\6%ARTI\6%CMNT\6%COMP\6%COPY\6%GNRE\6%TITL\6%TRCK\6%YEAR\6%SUBT\6%AART\6%DISC)".encode()).split(b'\6')
     
 class GenericThread(QtCore.QThread):
     def __init__(self, function, *args, **kwargs):
