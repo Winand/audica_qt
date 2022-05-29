@@ -5,60 +5,8 @@ Created on Thu Oct 03 21:58:47 2013
 @author: Winand
 """
 
-# void
-# TabBar::mousePressEvent(QMouseEvent* event)
-# {
-#    if (event->button() == Qt::LeftButton)
-#        m_dragStartPos = event->pos(); // m_dragStartPos is a QPoint defined in the header
-#    QTabBar::mousePressEvent(event);
-# }
-#
-# void
-# TabBar::mouseMoveEvent(QMouseEvent* event)
-# {
-#    // If the left button isn't pressed anymore then return
-#    if (!(event->buttons() & Qt::LeftButton))
-#        return;
-#
-#    // If the distance is too small then return
-#    if ((event->pos() - m_dragStartPos).manhattanLength()
-#         < QApplication::startDragDistance())
-#        return;
-#
-#    // initiate Drag
-#    QDrag* drag = new QDrag(this);
-#    QMimeData* mimeData = new QMimeData;
-#    // a crude way to distinguish tab-reodering drops from other ones
-#    mimeData->setData("action", "tab-reordering") ;
-#    drag->setMimeData(mimeData);
-#    drag->exec();
-# }
-#
-# void
-# TabBar::dragEnterEvent(QDragEnterEvent* event)
-# {
-#    // Only accept if it's an tab-reordering request
-#    const QMimeData* m = event->mimeData();
-#    QStringList formats = m->formats();
-#    if (formats.contains("action") && (m->data("action") == "tab-reordering")) {
-#        event->acceptProposedAction();
-#    }
-# }
-#
-# void
-# TabBar::dropEvent(QDropEvent* event)
-# {
-#    int fromIndex   = tabAt(m_dragStartPos);
-#    int toIndex     = tabAt(event->pos());
-#    
-#    // Tell interested objects that 
-#    if (fromIndex != toIndex)
-#        emit tabMoveRequested(fromIndex, toIndex);
-#    event->acceptProposedAction();
-# }
-
-from PyQt4.QtCore import pyqtSignal, Qt, QMimeData, QPoint
-from PyQt4.QtGui import QTabBar, QDrag, QApplication, QPainter, QPen, QColor
+from PyQt4.QtCore import Qt, QPoint, QEvent
+from PyQt4.QtGui import QTabBar, QPainter, QPen, QColor, QWidget
 from general import overmind
 from settings import TABBAR
 
@@ -72,83 +20,24 @@ def pointToRect(pt, rc):
     return QPoint(x, y)
 
 class AuTabBar(QTabBar):
-    #tabMoveRequested = pyqtSignal(int, int)
     def __init__(self, parent=None):
         overmind(self).__init__(parent)
-        self.setAcceptDrops(True)
-        self.m_dragStartPos = None
-        self.dragging = False
-        
+        self.movingWidgetVisible = None
+        self.setMovable(True)
     
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            self.m_dragStartPos = e.pos()
-        overmind(self).mousePressEvent(e)
-        
-    def mouseMoveEvent(self, e):
-        if not self.m_dragStartPos: return
-            
-        if not e.buttons() & Qt.LeftButton:
-            return
-            
-        if ((e.pos() - self.m_dragStartPos).manhattanLength()) < \
-        QApplication.startDragDistance():
-            return
-            
-        drag = QDrag(self)
-        mimeData = QMimeData()
-        mimeData.setData("action", "tab-reordering")
-        drag.setMimeData(mimeData)
-        drag.exec_()
-        
-    def dragEnterEvent(self, e):
-        self.dragging = True
-        m = e.mimeData()
-        formats = m.formats()
-        if formats.contains("action") and (m.data("action") == "tab-reordering"):
-            e.acceptProposedAction()
-            
-    def dragMoveEvent(self, e):
-        fromIndex = self.tabAt(self.m_dragStartPos)
-        toIndex = self.tabAt(e.pos())
-        toPart = rcPart(e.pos(), self.tabRect(toIndex))
-        if fromIndex > toIndex and toPart==P_RIGHT:
-            toIndex += 1
-        if fromIndex < toIndex and toPart==P_LEFT:
-            toIndex -= 1
-        if fromIndex != toIndex:
-            self.moveTab(fromIndex, toIndex)
-            self.m_dragStartPos = pointToRect(e.pos(), self.tabRect(toIndex))
-            print fromIndex, toIndex
-        self.mouse_pos = e.pos()
-        self.update()
-            
-    def dropEvent(self, e):
-        if not self.dragging: return
-        self.dragging = False
-#        fromIndex = self.tabAt(self.m_dragStartPos)
-#        toIndex = self.tabAt(e.pos())
-#        if fromIndex != toIndex:
-#            self.moveTab(fromIndex, toIndex)
-            #self.tabMoveRequested.emit(fromIndex, toIndex)
-        e.acceptProposedAction()
-        
-    def paintEvent(self, e):
-        overmind(self).paintEvent(e)
-        p = QPainter(self)
+    def __paint_line(self, w, rc):
+        p = QPainter(w)
         pen = QPen()
         pen.setWidth(2)
         pen.setColor(QColor(TABBAR.ACTIVE_LINE))
         p.setPen(pen)
-        rc = self.tabRect(self.currentIndex()).adjusted(0,1,1,0)
         p.drawLine(rc.topLeft(), rc.topRight())
-#        if not self.dragging: return
-#        fromIndex = self.tabAt(self.m_dragStartPos)
-#        toIndex = self.tabAt(self.mouse_pos)
-#        if fromIndex == toIndex: return
-#        p.setPen(Qt.NoPen)
-#        p.setBrush(Qt.Dense6Pattern)
-#        p.drawRect(self.tabRect(toIndex).adjusted(2,1,-1,-2))
+    
+    def paintEvent(self, e):
+        overmind(self).paintEvent(e)
+        if not self.movingWidgetVisible:
+            print "?"
+            self.__paint_line(self, self.tabRect(self.currentIndex()).adjusted(0,1,1,0))
         
     def tabData(self, index):
         return overmind(self).tabData(index).toPyObject()[0]
@@ -162,43 +51,72 @@ class AuTabBar(QTabBar):
         for i in items:
             self.addTab(getattr(i, titleattr))
             self.setTabData(self.count()-1, (i,))
-        
-        
-        
-                    
+            
+    def mouseMoveEvent(self, e):
+        overmind(self).mouseMoveEvent(e)
+        if e.buttons() & Qt.LeftButton and self.movingWidgetVisible == None:
+            mt = next((x for x in self.findChildren(QWidget) if type(x)==QWidget), None)
+            if mt:
+                if mt.isVisible():
+                    self.movingWidgetVisible = True
+                mt.installEventFilter(self)
+                
+    def eventFilter(self, obj, e):
+        if e.type() == QEvent.Paint:
+            self.__paint_line(obj, obj.rect().adjusted(2,1,-1,0))
+            return True
+        elif e.type() == QEvent.Hide:
+            print "hide"
+            self.movingWidgetVisible = False
+        elif e.type() == QEvent.Show:
+            self.movingWidgetVisible = True
+        return overmind(self).eventFilter(obj, e)
+
+#class AuTabBar(QTabBar):
+#    def __init__(self, parent=None):
+#        overmind(self).__init__(parent)
+#        self.setMovable(True)
+#        self.setAcceptDrops(True)
+#        self.m_dragStartPos = None
+#        self.dragging = False
+#        
+#    
+#    def mousePressEvent(self, e):
+#        if e.button() == Qt.LeftButton:
+#            self.m_dragStartPos = e.pos()
+#        overmind(self).mousePressEvent(e)
+#        
+#    def mouseMoveEvent(self, e):
+#        if not e.buttons() & Qt.LeftButton or \
+#        ((e.pos() - self.m_dragStartPos).manhattanLength()) < \
+#        QApplication.startDragDistance():
+#            return
+#        drag = QDrag(self)
+#        mimeData = QMimeData()
+#        mimeData.setData("action", "tab-reordering")
+#        drag.setMimeData(mimeData)
+#        drag.exec_()
+#        
+#    def dragEnterEvent(self, e):
+#        self.dragging = True
+#        m = e.mimeData()
+#        formats = m.formats()
+#        if formats.contains("action") and (m.data("action") == "tab-reordering"):
+#            e.acceptProposedAction()
+#            
 #    def dragMoveEvent(self, e):
 #        fromIndex = self.tabAt(self.m_dragStartPos)
 #        toIndex = self.tabAt(e.pos())
+#        toPart = rcPart(e.pos(), self.tabRect(toIndex))
+#        if fromIndex > toIndex and toPart==P_RIGHT: toIndex += 1
+#        elif fromIndex < toIndex and toPart==P_LEFT: toIndex -= 1
 #        if fromIndex != toIndex:
 #            self.moveTab(fromIndex, toIndex)
-#            self.m_dragStartPos = e.pos()
+#            self.m_dragStartPos = pointToRect(e.pos(), self.tabRect(toIndex))
 #            print fromIndex, toIndex
-#        self.mouse_pos = e.pos()
 #        self.update()
 #            
 #    def dropEvent(self, e):
 #        if not self.dragging: return
 #        self.dragging = False
-##        fromIndex = self.tabAt(self.m_dragStartPos)
-##        toIndex = self.tabAt(e.pos())
-##        if fromIndex != toIndex:
-##            self.moveTab(fromIndex, toIndex)
-#            #self.tabMoveRequested.emit(fromIndex, toIndex)
 #        e.acceptProposedAction()
-#        
-#    def paintEvent(self, e):
-#        overmind(self).paintEvent(e)
-#        p = QPainter(self)
-#        pen = QPen()
-#        pen.setWidth(2)
-#        pen.setColor(QColor("#ff8000"))
-#        p.setPen(pen)
-#        rc = self.tabRect(self.currentIndex()).adjusted(0,1,1,0)
-#        p.drawLine(rc.topLeft(), rc.topRight())
-#        if not self.dragging: return
-#        fromIndex = self.tabAt(self.m_dragStartPos)
-#        toIndex = self.tabAt(self.mouse_pos)
-#        if fromIndex == toIndex: return
-#        p.setPen(Qt.NoPen)
-#        p.setBrush(Qt.Dense6Pattern)
-#        p.drawRect(self.tabRect(toIndex).adjusted(2,1,-1,-2))
