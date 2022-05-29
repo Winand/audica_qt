@@ -1,0 +1,21 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="main_icon">icon1.ico</file>
+    <file alias="lastfm_ico">lfm.ico</file>
+    <file alias="img_pos">position.gif</file>
+  </qresource>
+  <qresource prefix="/tags/icon">
+    <file alias="song">Song.gif</file>
+    <file alias="web">web.gif</file>
+    <file alias="album">album.gif</file>
+    <file alias="artist">artist.gif</file>
+    <file alias="info">info.gif</file>
+    <file alias="url">url.gif</file>
+  </qresource>
+  <qresource prefix="/windows">
+    <file alias="taskbar_next">win_taskbar_next2.ico</file>
+    <file alias="taskbar_pause">win_taskbar_pause.ico</file>
+    <file alias="taskbar_play">win_taskbar_play1.ico</file>
+    <file alias="taskbar_prev">win_taskbar_prev2.ico</file>
+  </qresource>
+</RCC>

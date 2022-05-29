@@ -184,6 +184,16 @@ BASS_CONFIG_UPDATETHREADS = 24
 #if defined(__linux__) || defined (_WIN32_WCE)
 BASS_CONFIG_DEV_BUFFER = 27
 #endif
+BASS_CONFIG_VISTA_TRUEPOS = 30
+BASS_CONFIG_DEV_DEFAULT = 36
+BASS_CONFIG_NET_READTIMEOUT = 37
+BASS_CONFIG_VISTA_SPEAKERS = 38
+BASS_CONFIG_HANDLES = 41
+BASS_CONFIG_UNICODE = 42
+BASS_CONFIG_SRC = 43
+BASS_CONFIG_SRC_SAMPLE = 44
+BASS_CONFIG_ASYNCFILE_BUFFER = 45
+BASS_CONFIG_OGG_PRESCAN = 47
 
 # BASS_SetConfigPtr options
 BASS_CONFIG_NET_AGENT = 16
@@ -385,6 +395,7 @@ BASS_CTYPE_STREAM_MP2 = 0x10004
 BASS_CTYPE_STREAM_MP3 = 0x10005
 BASS_CTYPE_STREAM_AIFF = 0x10006
 BASS_CTYPE_STREAM_CA = 0x10007
+BASS_CTYPE_STREAM_MF = 0x10008
 BASS_CTYPE_STREAM_WAV = 0x40000# WAVE flag, LOWORD=codec
 BASS_CTYPE_STREAM_WAV_PCM = 0x50001
 BASS_CTYPE_STREAM_WAV_FLOAT = 0x50003
@@ -718,8 +729,8 @@ class TAG_CA_CODEC(ctypes.Structure):
 				]
 
 # BASS_ChannelGetLength/GetPosition/SetPosition modes
-BASS_POS_BYTE = 0 # byte position
-BASS_POS_MUSIC_ORDER = 1 # order.row position, MAKELONG(order,row)
+BASS_POS_BYTE = 0# byte position
+BASS_POS_MUSIC_ORDER = 1# order.row position, MAKELONG(order,row)
 BASS_POS_OGG = 3 #OGG bitstream number
 BASS_POS_DECODE = 0x10000000# flag: get the decoding (not playing) position
 
@@ -874,7 +885,7 @@ BASS_SetVolume = func_type(ctypes.c_byte, ctypes.c_float)(('BASS_SetVolume', bas
 BASS_GetVolume = func_type(ctypes.c_float)(('BASS_GetVolume', bass_module))
 
 #HPLUGIN BASSDEF(BASS_PluginLoad)(const char *file, DWORD flags);
-BASS_PluginLoad = func_type(HPLUGIN, ctypes.c_char_p, ctypes.c_ulong)(('BASS_PluginLoad', bass_module))
+BASS_PluginLoad = func_type(HPLUGIN, ctypes.c_void_p, ctypes.c_ulong)(('BASS_PluginLoad', bass_module))
 #BOOL BASSDEF(BASS_PluginFree)(HPLUGIN handle);
 BASS_PluginFree = func_type(ctypes.c_byte, HPLUGIN)(('BASS_PluginFree', bass_module))
 #const BASS_PLUGININFO *BASSDEF(BASS_PluginGetInfo)(HPLUGIN handle);
@@ -922,7 +933,7 @@ BASS_StreamCreate = func_type(HSTREAM, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_
 #HSTREAM BASSDEF(BASS_StreamCreateFile)(BOOL mem, const void *file, QWORD offset, QWORD length, DWORD flags);
 BASS_StreamCreateFile = func_type(HSTREAM, ctypes.c_byte, ctypes.c_void_p, QWORD, QWORD, ctypes.c_ulong)(('BASS_StreamCreateFile', bass_module))
 #HSTREAM BASSDEF(BASS_StreamCreateURL)(const char *url, DWORD offset, DWORD flags, DOWNLOADPROC *proc, void *user);
-BASS_StreamCreateURL = func_type(HSTREAM, ctypes.c_char_p, ctypes.c_ulong, ctypes.c_ulong, DOWNLOADPROC, ctypes.c_void_p)(('BASS_StreamCreateURL', bass_module))
+BASS_StreamCreateURL = func_type(HSTREAM, ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, DOWNLOADPROC, ctypes.c_void_p)(('BASS_StreamCreateURL', bass_module))
 #HSTREAM BASSDEF(BASS_StreamCreateFileUser)(DWORD system, DWORD flags, const BASS_FILEPROCS *proc, void *user);
 BASS_StreamCreateFileUser = func_type(HSTREAM, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(BASS_FILEPROCS), ctypes.c_void_p)(('BASS_StreamCreateFileUser', bass_module))
 #BOOL BASSDEF(BASS_StreamFree)(HSTREAM handle);
