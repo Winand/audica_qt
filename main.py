@@ -10,9 +10,11 @@ Created on Wed Mar 27 22:38:24 2013
 
 import player_bass as bass
 from PyQt4 import QtGui, uic
-from PyQt4.QtCore import QString, QUrl, pyqtSignal, Qt, QTimer, QDir#, QTranslator
-from PyQt4.QtGui import QAbstractItemView, QPalette, QColor, QListView, QPainter, QImage, QGraphicsDropShadowEffect, QPixmap, QApplication
+from PyQt4.QtCore import QString, QUrl, pyqtSignal, Qt, QTimer, QDir, QRect, QSize, QPoint, QEvent#, QTranslator
+from PyQt4.QtGui import QAbstractItemView, QPalette, QColor, QPainter, QImage, \
+    QGraphicsDropShadowEffect, QPixmap, QApplication, QRubberBand, QCommonStyle
 from playitem import PlayItem
+import playlist
 from playlist import PlaylistSet, DoubleColumn, PlayItem as PlayItem2
 from general import HourMinSec, overmind, bound
 import math, sys
@@ -34,12 +36,33 @@ class AuToolButton(QtGui.QToolButton):
             p.setBrush(QColor("#ffb06a"))
             p.setPen(QColor("#ffb06a"))
             p.drawRoundedRect(self.rect().adjusted(1,2,-2,-3),1,1)
-        super(type(self), self).paintEvent(e)
+        overmind(self).paintEvent(e)
 
-class AuTreeView(QtGui.QTreeView):
+class AuPlaylistView(QtGui.QTableView): #QTreeView
     resize = pyqtSignal(int, int)
+    
+    def __init__(self, *args, **kwargs):
+        overmind(self).__init__(*args, **kwargs)
+#!        self.header().setResizeMode(QtGui.QHeaderView.Fixed)
+        self.horizontalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
+#        self.verticalHeader().setMovable(True)
+#!        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+#!        self.setRootIsDecorated(False)
+#!        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+##        self.plv.setDragEnabled(True)
+##        self.plv.setAcceptDrops(True)
+##        self.plv.setDropIndicatorShown(True)
+#        self.plv.setDragDropMode(QListView.DragDrop)
+#        self.plv.setDropIndicatorShown(False)
+#        #self.plv.setDragDropOverwriteMode(False)
+#        self.verticalHeader().setHidden(True)
+#!        self.plv.setUniformRowHeights(True) #no lags on 1st time scrolling
+#!        self.plv.setAllColumnsShowFocus(True)
+        self.setAttribute(Qt.WA_MacShowFocusRect, 0)
+        
     def resizeEvent(self, e):
         self.resize.emit(e.size().width(), e.size().height())
+        overmind(self).resizeEvent(e)
         
 class AuSpectrumBox(QtGui.QWidget):
     player = None
@@ -151,29 +174,15 @@ class AuMainWindow(QtGui.QMainWindow):
         self.tabs.currentChanged.connect(self.tabChanged)
         #self.tabs.setDrawBase(False)
         
-        self.plv.setModel(self.tabs.tabData(0))
-        self.plv.setSortingEnabled(True)
-        self.plv.activated.connect(self.trackActivated)
-        self.plv.resize.connect(self.playlist_resize)
-        self.delegate = DoubleColumn()
-        self.plv.setItemDelegateForColumn(3, self.delegate)
-        self.plv.header().setResizeMode(QtGui.QHeaderView.Fixed)
-        self.plv.setRootIsDecorated(False)
-        self.plv.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.plv.setAlternatingRowColors(True)
-        pal = self.plv.palette()
-        pal.setColor(QPalette.AlternateBase, pal.color(QPalette.AlternateBase).lighter(102))
-        self.plv.setPalette(pal)
-##        self.plv.setDragEnabled(True)
-##        self.plv.setAcceptDrops(True)
-##        self.plv.setDropIndicatorShown(True)
-#        self.plv.setDragDropMode(QListView.DragDrop)
-#        self.plv.setDropIndicatorShown(False)
-#        #self.plv.setDragDropOverwriteMode(False)
         self.plv.minimode = False
-        self.plv.setUniformRowHeights(True) #no lags on 1st time scrolling
-        self.plv.setAllColumnsShowFocus(True)
-        self.plv.setAttribute(Qt.WA_MacShowFocusRect, 0)
+        self.plv.setItemDelegateForColumn(3, DoubleColumn())
+        self.plv.setVisible(False)
+        self.plv.setModel(self.tabs.tabData(0))
+        self.playlist_resize(self.plv.width(), self.plv.height())
+        self.plv.setVisible(True)
+        self.plv.resize.connect(self.playlist_resize)
+        self.plv.activated.connect(self.trackActivated)
+        playlist.selectionModel = self.plv.selectionModel() #init
         
         self.txtSearch.textEdited.connect(self.searchbox_change)
         self.filter_postpone_timer = QTimer()
@@ -207,6 +216,8 @@ class AuMainWindow(QtGui.QMainWindow):
         
         self.btnVolumes.setMenu(self.popupFolders)
         self.btnMainMenu.setMenu(self.main_menu)
+        
+        self.rb = None
         
 #    def __del__(self):
 #        ps = PlaylistSet()
@@ -300,20 +311,24 @@ class AuMainWindow(QtGui.QMainWindow):
         p.drawText(rc, Qt.AlignCenter, txt);
     
     def playlist_resize(self, w, h):
-        minimode = w <= 316
+        minimode = (w <= MAIN.MINI_UI_WIN_WIDTH+100 if self.plv.minimode else w <= MAIN.MINI_UI_WIN_WIDTH)
+#!        header = self.plv.header()
+        header = self.plv.horizontalHeader()
         if minimode != self.plv.minimode:
             self.plv.minimode = minimode
-            self.plv.setHeaderHidden(minimode)
+#!            self.plv.setHeaderHidden(minimode)
+            header.setHidden(minimode)
             self.plv.setColumnHidden(2, minimode)
             self.plv.setColumnHidden(3, minimode)
             self.spectrumBox.setVisible(not minimode)
-        header = self.plv.header()
         if not minimode:
             w3 = 85.0
             w02 = w - w3
-            header.resizeSection(0, w02/7*3)
-            header.resizeSection(1, w02/7*2)
-            header.resizeSection(2, w02/7*2)
+            w02_72 = int(w02/7*2)
+            print w, w02, w02_72, w02 - w02_72*2
+            header.resizeSection(0, w02 - w02_72*2)
+            header.resizeSection(1, w02_72)
+            header.resizeSection(2, w02_72)
             header.resizeSection(3, w3)
         else:
             header.resizeSection(0, w/5*3)
@@ -321,6 +336,7 @@ class AuMainWindow(QtGui.QMainWindow):
         
     def tabChanged(self, index):
         self.plv.setModel(self.tabs.tabData(index))
+        playlist.selectionModel = self.plv.selectionModel()
         
     def trackActivated(self, index):
         self.player = bass.Player()
@@ -461,7 +477,28 @@ class AuMainWindow(QtGui.QMainWindow):
                     letters = [chr(65+sh) for sh in range(26) if mask>>sh&1]
                     self.manageVolumes(letters, rem = message.wParam==DBT_DEVICEREMOVECOMPLETE)
         return False, 0
-
+        
+#    def eventFilter(self, obj, e):
+#        print e
+#        if e.type() == QEvent.MouseButtonPress:
+#            print 1
+#            self.rb_orig = e.pos()
+#            if not self.rb:
+#                self.rb = QRubberBand(QRubberBand.Rectangle, self.plv)
+#            self.rb.setGeometry(QRect(self.rb_orig, QSize()))
+#            self.rb.show()
+#            return True
+#        elif e.type() == QEvent.MouseMove:
+#            print 2
+#            if self.rb:
+#                self.rb.setGeometry(QRect(self.rb_orig, e.pos()).normalized())
+#                return True
+#        elif e.type() == QEvent.MouseButtonRelease:
+#            print 3
+#            self.rb.hide()
+#            return True
+#        return overmind(self).eventFilter(obj, e) 
+        
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
 #    translator=QtCore.QTranslator()

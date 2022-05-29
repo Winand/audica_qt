@@ -8,6 +8,7 @@ Created on Thu Sep 26 17:28:23 2013
 from ctypes import c_ubyte
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt4.QtCore import QUrl, QThread
+import timeit
 
 class NetworkInit(QThread):
     """Don't know why but first network request is slow on my Win7x64sp1
@@ -147,7 +148,7 @@ class FCollection():
     def __init__(self):
         self.setItems([])
         
-    def sort(self, attr, order):
+    def sort(self, attr, order, sel):
 #        sort_idxs = sorted(range(len(self.items)), reverse=order==1, \
 #            key=lambda i: attr(self.items[i]).lower())
 #        temp = []
@@ -161,9 +162,18 @@ class FCollection():
 #            key=lambda i: attr(i[1]).lower())
 #        idxs, self.items = zip(*tmp)
 #        print self.items.index(f)
-
-        sort = sorted(self.items, reverse=order==1, key=lambda i: attr(i).lower())
+        
+        a=timeit.default_timer()
+        sort = sorted(self.items, reverse=order==1, key=lambda i: attr(i))
         self.setItems(sort)
+        print timeit.default_timer()-a, len(sort)
+#        fsel = [False]*len(self)
+#        for i in sel:
+#            fsel[i] = True
+#        sitems = zip(self.items, fsel)
+#        sort, fsel = zip(*sorted(sitems, reverse=order==1, key=lambda i: attr(i[0]).lower()))
+#        self.setItems(sort)
+#        return [i for i, j in enumerate(fsel) if j == True]
 
     def setFilter(self, text, *attrs):
         if not text: #unfilter

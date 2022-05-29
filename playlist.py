@@ -7,10 +7,12 @@ Created on Thu Sep 26 17:16:44 2013
 
 import struct, cStringIO
 from PyQt4.QtGui import QStandardItem, QStandardItemModel, QBrush, QColor, \
-    QStyledItemDelegate, QSortFilterProxyModel
+    QStyledItemDelegate, QSortFilterProxyModel, QStyle, QPalette
 from PyQt4.QtCore import QAbstractTableModel, QModelIndex, QVariant, Qt
+from PyQt4.QtGui import QItemSelectionModel, QItemSelection
 from general import HourMinSec, s, sjoin, FCollection, overmind
 import cPickle, zipfile
+selectionModel = None
 
 #def cs(s):
 #    return s.encode('cp1251', 'ignore')
@@ -19,21 +21,48 @@ class DoubleColumn(QStyledItemDelegate):
     def paint(self, painter, option, index):
         overmind(self).paint(painter, option, index)
         item = index.model().items[index.row()]
-        painter.drawText(option.rect.adjusted(5,0,0,0), Qt.AlignLeft, item.Track)
-        painter.drawText(option.rect.adjusted(0,0,-5,0), Qt.AlignRight, item.l_timing)
+        if option.state & QStyle.State_Enabled:
+            if option.state & QStyle.State_Active:
+                cg = QPalette.Normal
+            else: cg = QPalette.Inactive
+        else: cg = QPalette.Disabled
+        painter.setPen(option.palette.color(cg, \
+            QPalette.HighlightedText if option.state & QStyle.State_Selected \
+            else QPalette.Text \
+        ))
+        painter.drawText(option.rect.adjusted(5,1,0,0), Qt.AlignLeft|Qt.AlignVCenter, item.Track)
+        painter.drawText(option.rect.adjusted(0,1,-5,0), Qt.AlignRight|Qt.AlignVCenter, item.l_timing)
 
 class PlayListModelFS(QSortFilterProxyModel):
     def __init__(self, model, parent=None):
         overmind(self).__init__(parent)
-        self.setFilterKeyColumn(-1)
-        self.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self.setSourceModel(model)
         self.Title = model.Title
+        self.items = model.items
+        self.filter_mask = ""
+        self.attrs_filt = (PlayItem.sort_song, PlayItem.sort_artist, \
+                                    PlayItem.filt_album, PlayItem.sort_path)
         
     def setFilter(self, text):
-        self.setFilterFixedString(text)
+        self.filter_mask = text.lower()
+        self.invalidateFilter()
         
-
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.items[source_row]
+        for i in self.attrs_filt:
+            if self.filter_mask in i(item):
+                return True
+        return False
+        
+    def sort(self, column, order):
+        self.sourceModel().sort(column, order)
+        
+#    def lessThan(self, left, right):
+#        it1, it2 = self.items[left.row()], self.items[right.row()]
+#        attr = self.attrs_sort[left.column()]
+#        return attr(it1).lower() < attr(it2).lower()
+        
+        
 #    def setFilterMinimumDate(self, date):
 #        self.minDate = date
 #        self.invalidateFilter()
@@ -154,10 +183,19 @@ class PlayListModel(QAbstractTableModel):
 #            if context[0] < context[1]:
 #                stack += qsort_int(context[0], context[1])
         
-    def sort(self, column, view, order = Qt.AscendingOrder):
+    def sort(self, column, order = Qt.AscendingOrder):
+#        isel, rsel = selectionModel.selectedRows(), []
+#        if isel and len(isel):
+#            rsel = [i.row() for i in isel]
         sort_arg = (PlayItem.sort_song, PlayItem.sort_artist, \
                             PlayItem.sort_album, PlayItem.sort_path)[column]
-        self.items.sort(sort_arg, order)
+        self.items.sort(sort_arg, order, None)
+#        selectionModel.clear()
+#        selection = QItemSelection()
+#        for i in rsel2:
+#            idx = self.index(i, 0)
+#            selection.select(idx, idx)
+#        selectionModel.select(selection, QItemSelectionModel.Rows|QItemSelectionModel.Select)
         self.layoutChanged.emit()
         
     def supportedDropActions(self): 
@@ -239,11 +277,11 @@ class PlayItem(object):
         if p==-1: return self.Track.rjust(4, '0')
         return self.Track[:p].rjust(4, '0')
     
-    def sort_song(self): return self.Song
-    def sort_artist(self): return self.Artist
-    def sort_album(self): return self.m_Album+self.format_track()
-    def filt_album(self): return self.m_Album
-    def sort_path(self): return self.path
+    def sort_song(self): return self.Song.lower()
+    def sort_artist(self): return self.Artist.lower()
+    def sort_album(self): return (self.m_Album+self.format_track()).lower()
+    def filt_album(self): return self.m_Album.lower()
+    def sort_path(self): return self.path.lower()
 
 class PlaylistSet():
     MAGIC_PL = "AU$"
@@ -316,7 +354,7 @@ class PlaylistSet():
                     lists[i].chooseMethod = dat[i][1]  
                     lists[i].playing = dat[i][2]
                     lists[i].items = dat[i][3]
-                self.lists = lists
+                self.lists = [PlayListModelFS(i) for i in lists]#lists
 #        except zipfile.BadZipfile:
 #            self.lists = self.loadOldFormat(filepath)
 #        except:

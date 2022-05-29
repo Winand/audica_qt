@@ -1346,20 +1346,93 @@
        <number>4</number>
       </property>
       <item>
-       <widget class="AuTreeView" name="plv"/>
-      </item>
-      <item>
-       <widget class="AuTabBar" name="tabs" native="true">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>25</height>
-         </size>
+       <widget class="AuPlaylistView" name="plv">
+        <property name="palette">
+         <palette>
+          <active>
+           <colorrole role="AlternateBase">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>252</red>
+              <green>252</green>
+              <blue>252</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </active>
+          <inactive>
+           <colorrole role="AlternateBase">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>252</red>
+              <green>252</green>
+              <blue>252</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </inactive>
+          <disabled>
+           <colorrole role="AlternateBase">
+            <brush brushstyle="SolidPattern">
+             <color alpha="255">
+              <red>252</red>
+              <green>252</green>
+              <blue>252</blue>
+             </color>
+            </brush>
+           </colorrole>
+          </disabled>
+         </palette>
         </property>
         <property name="styleSheet">
-         <string notr="true">QTabBar::tab { height: 25px; }</string>
+         <string notr="true">QTableView {
+	paint-alternating-row-colors-for-empty-area: true;
+	gridline-color: #f0f0f0;
+}</string>
         </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+        <property name="sortingEnabled">
+         <bool>true</bool>
+        </property>
+        <attribute name="horizontalHeaderHighlightSections">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="verticalHeaderVisible">
+         <bool>false</bool>
+        </attribute>
+        <attribute name="verticalHeaderDefaultSectionSize">
+         <number>17</number>
+        </attribute>
        </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="AuTabBar" name="tabs" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QTabBar::tab { height: 25px;}
+/*QTabBar::tab:selected {
+	border-top: 2px solid #ff8000;
+	padding-left: 12px;
+	padding-right: 12px;
+ }*/
+
+</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -1654,11 +1727,6 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>AuTreeView</class>
-   <extends>QTreeView</extends>
-   <header>main</header>
-  </customwidget>
-  <customwidget>
    <class>AuProgressBar</class>
    <extends>QWidget</extends>
    <header>auprogressbar</header>
@@ -1686,7 +1754,14 @@
    <extends>QLineEdit</extends>
    <header>aulineedit</header>
   </customwidget>
+  <customwidget>
+   <class>AuPlaylistView</class>
+   <extends>QTableView</extends>
+   <header>main</header>
+  </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="res/res.qrc"/>
+ </resources>
  <connections/>
 </ui>
