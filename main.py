@@ -10,22 +10,30 @@ Created on Wed Mar 27 22:38:24 2013
 
 import player_bass as bass
 from PyQt4 import QtGui, uic
-from PyQt4.QtCore import QString, QUrl, pyqtSignal, Qt, QTimer, QDir, QRect, QSize, QPoint, QEvent#, QTranslator
+from PyQt4.QtCore import QString, QUrl, pyqtSignal, Qt, QTimer, QDir, QRect, QSize, QPoint, QEvent, QRegExp, QString#, QTranslator
 from PyQt4.QtGui import QAbstractItemView, QPalette, QColor, QPainter, QImage, \
-    QGraphicsDropShadowEffect, QPixmap, QApplication, QRubberBand, QCommonStyle
+    QGraphicsDropShadowEffect, QPixmap, QApplication, QRubberBand, QFont, QIcon, QMenu, QCursor, QDesktopServices
 from playitem import PlayItem
 import playlist
 from playlist import PlaylistSet, DoubleColumn, PlayItem as PlayItem2
-from general import HourMinSec, overmind, bound
+from general import HourMinSec, overmind, bound, divide_size, isWin32, s, s2
 import math, sys
-if sys.platform == 'win32':
+if isWin32():
     from windows import itaskbarlist3
     import windows.com as win32
     from windows.com import WINDOWPOS, WM_WINDOWPOSCHANGING, DRIVE_REMOVABLE, DRIVE_CDROM
     from windows.com import WM_DEVICECHANGE, DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE, DEV_BROADCAST_HDR, DEV_BROADCAST_VOLUME, DBT_DEVTYP_VOLUME
 from aufloatingwindow import AuFloatingWindow
 from res import res #resources
-from settings import MAIN
+from settings import MAIN as P, save_settings
+
+song_info_template = u"""<html><head><style type="text/css">a{{color:black; text-decoration: none;}} td{{vertical-align: middle; padding-right:3px;}}</style></head><body>
+<table cellspacing=0 border=1><tr><td><img src=":/tags/icon/song"/></td><td><span style="font-size:{song_size}pt">{song}</span></td></tr>
+<tr><td><a href="web:0://{artist_search}"><img src=":/tags/icon/artist"/></a></td><td><a href="filter://{artist_search}">{artist}</a></td></tr>
+<tr><td><a href="web:1://{album_search}"><img src=":/tags/icon/album"/></a></td><td><a href="filter://{album_search}">{album}</a></td></tr>
+<tr><td><img src=":/tags/icon/info"/></td><td>{info}</td></tr></table>
+</body></html>"""
+song_label_size = P.SONG_LABEL_SIZE[0]
 
 ogglink=0
 
@@ -39,7 +47,7 @@ class AuToolButton(QtGui.QToolButton):
         overmind(self).paintEvent(e)
 
 class AuPlaylistView(QtGui.QTableView): #QTreeView
-    resize = pyqtSignal(int, int)
+    resized = pyqtSignal(int, int)
     
     def __init__(self, *args, **kwargs):
         overmind(self).__init__(*args, **kwargs)
@@ -61,8 +69,8 @@ class AuPlaylistView(QtGui.QTableView): #QTreeView
         self.setAttribute(Qt.WA_MacShowFocusRect, 0)
         
     def resizeEvent(self, e):
-        self.resize.emit(e.size().width(), e.size().height())
         overmind(self).resizeEvent(e)
+        self.resized.emit(e.size().width(), e.size().height())
         
 class AuSpectrumBox(QtGui.QWidget):
     player = None
@@ -151,11 +159,9 @@ class AuFileDialog(QtGui.QFileDialog):
 class AuMainWindow(QtGui.QMainWindow):
     def __init__(self):
         overmind(self).__init__()
-        from PyQt4.QtGui import QWidget
-        print type(self) == QWidget
         uic.loadUi("aumainwindow.ui", self)
-        self.popupFolders.menuAction().setVisible(False) #hide popups
-        self.main_menu.menuAction().setVisible(False)
+        for i in self.menuBar.findChildren(QMenu, QRegExp("popup.+")):
+            i.menuAction().setVisible(False) #hide popups
                 
         self.orig_wnd_title = self.windowTitle()
         self.show()
@@ -166,23 +172,23 @@ class AuMainWindow(QtGui.QMainWindow):
         self.btnPrev.clicked.connect(self.btnPrev_clicked)
         self.btnPlay.clicked.connect(self.btnPlay_clicked)
         self.btnNext.clicked.connect(self.btnNext_clicked)
+        self.lbltags.linkActivated.connect(self.headertext_clicked)
         
         lists = PlaylistSet().load(r'lst.zip')
+        self.tabs.changed.connect(self.updatePlaylistMenu)
         self.tabs.setTabList(lists, "Title")
         self.tabs.setShape(QtGui.QTabBar.RoundedSouth)
         #self.tabs.setUsesScrollButtons(False)
+        self.tabs.setCurrentIndex(P.CURRENT_TAB)
+        self.tabChanged(P.CURRENT_TAB)
         self.tabs.currentChanged.connect(self.tabChanged)
         #self.tabs.setDrawBase(False)
-        
-        self.plv.minimode = False
+
+        self.plv.minimode = None
         self.plv.setItemDelegateForColumn(3, DoubleColumn())
-        self.plv.setVisible(False)
-        self.plv.setModel(self.tabs.tabData(0))
-        self.playlist_resize(self.plv.width(), self.plv.height())
-        self.plv.setVisible(True)
-        self.plv.resize.connect(self.playlist_resize)
+        self.playlist_resize(self.plv.width()-2, self.plv.height()-2) #"-2" - border?
+        self.plv.resized.connect(self.playlist_resize)
         self.plv.activated.connect(self.trackActivated)
-        playlist.selectionModel = self.plv.selectionModel() #init
         
         self.txtSearch.textEdited.connect(self.searchbox_change)
         self.filter_postpone_timer = QTimer()
@@ -214,14 +220,42 @@ class AuMainWindow(QtGui.QMainWindow):
         self.volumes = {}
         self.manageVolumes([str(i.absolutePath())[:1] for i in QDir.drives()])
         
+        self.popupPlaylists.triggered.connect(self.showPlaylist)
         self.btnVolumes.setMenu(self.popupFolders)
-        self.btnMainMenu.setMenu(self.main_menu)
-        
-        self.rb = None
+        self.btnMainMenu.setMenu(self.popup_main_menu)
+        self.btnPlaylists.setMenu(self.popupPlaylists)
+        self.popup_web_info.triggered.connect(self.web_info_clicked)
+        for i in P.WEB_INFO.keys():
+            self.popup_web_info.addAction(i)
+        self.lbltags.setText(song_info_template.format( \
+            song="Дожили".decode("utf-8"), song_size=song_label_size, \
+            artist="AC/DC", artist_search="Машина времени".decode("utf-8"), \
+            album="asdfd", album_search="asdfgh", \
+            info="#33, raggae"))
+        self.lblAudica.setVisible(False)
+        self.lblAlbumArt.setVisible(False)
         
 #    def __del__(self):
 #        ps = PlaylistSet()
 #        ps.save(r'lst1.txt', self.lists)
+        
+    def web_info_clicked(self, act):
+        url = P.WEB_INFO[unicode(act.text())]
+        if type(url) is tuple:
+            url = url[self.popup_web_info.property("type").toInt()[0]]
+        url = url.replace("#QRY#", \
+                            unicode(self.popup_web_info.property("ref").toString()))
+        QDesktopServices.openUrl(QUrl(url))
+        
+    def headertext_clicked(self, link):
+        protocol, ref = link.split("://")
+        if protocol == "filter":
+            self.txtSearch.setText(ref)
+            self.filter_postponed()
+        elif str(protocol).startswith("web:"):
+            self.popup_web_info.setProperty("ref", ref)
+            self.popup_web_info.setProperty("type", int(protocol[-1]))
+            self.popup_web_info.exec_(QCursor.pos())
         
     def btnOpen_clicked(self):
 #        AuFileDialog.getOpenFileName(None, "open", "", \
@@ -237,7 +271,7 @@ class AuMainWindow(QtGui.QMainWindow):
         if filename:
             pi = PlayItem2()
             pi.path = filename
-            pi.remote = filename.startswith("http://")
+            pi.remote = filename.startswith("http://") #FIXME: http only?
             self.plv.model().items.append(pi)
             self.plv.model().layoutChanged.emit()
         
@@ -246,7 +280,7 @@ class AuMainWindow(QtGui.QMainWindow):
             self.filter_postpone_timer.start(50)
         
     def filter_postponed(self):
-        self.plv.model().setFilter(str(self.txtSearch.text()))
+        self.plv.model().setFilter(unicode(self.txtSearch.text()))
 
     def timer_update_spectrum(self):
         self.spectrumBox.render()
@@ -311,7 +345,8 @@ class AuMainWindow(QtGui.QMainWindow):
         p.drawText(rc, Qt.AlignCenter, txt);
     
     def playlist_resize(self, w, h):
-        minimode = (w <= MAIN.MINI_UI_WIN_WIDTH+100 if self.plv.minimode else w <= MAIN.MINI_UI_WIN_WIDTH)
+        minimode = (w <= P.MINIUI_WIN_WIDTH+P.PL_BAR_W if self.plv.minimode \
+                                            else w <= P.MINIUI_WIN_WIDTH)
 #!        header = self.plv.header()
         header = self.plv.horizontalHeader()
         if minimode != self.plv.minimode:
@@ -321,27 +356,35 @@ class AuMainWindow(QtGui.QMainWindow):
             self.plv.setColumnHidden(2, minimode)
             self.plv.setColumnHidden(3, minimode)
             self.spectrumBox.setVisible(not minimode)
-        if not minimode:
-            w3 = 85.0
-            w02 = w - w3
-            w02_72 = int(w02/7*2)
-            print w, w02, w02_72, w02 - w02_72*2
-            header.resizeSection(0, w02 - w02_72*2)
-            header.resizeSection(1, w02_72)
-            header.resizeSection(2, w02_72)
-            header.resizeSection(3, w3)
-        else:
-            header.resizeSection(0, w/5*3)
-            header.resizeSection(1, w/5*2)
+            self.tabs.setVisible(not minimode)
+#            self.btnPlaylists.setVisible(minimode)
+            self.lblPlaylistInfo.setVisible(not minimode)
+            f = self.lblAudica.font()
+            f.setPointSize(P.LABEL_SIZE[minimode])
+            self.lblAudica.setFont(f)
+            global song_label_size
+            song_label_size = P.SONG_LABEL_SIZE[minimode]
+        col_sizes = divide_size(w, *P.COLUMN_SIZES[minimode])
+        for i in range(len(col_sizes)):
+            header.resizeSection(i, col_sizes[i])
         
     def tabChanged(self, index):
-        self.plv.setModel(self.tabs.tabData(index))
-        playlist.selectionModel = self.plv.selectionModel()
+        self.playlist = self.tabs.tabData(index)
+        self.plv.setModel(self.playlist)
+        P.CURRENT_TAB = index
         
     def trackActivated(self, index):
+        self.playlist.playing = index.row()
+        self.plv.repaint()
         self.player = bass.Player()
-        item = self.plv.model().items[index.row()]
+        item = self.playlist.modelIdxToItem(index)
         self.player.streamCreate(item, callback=self.opened)
+        print song_label_size
+        self.lbltags.setText(song_info_template.format( \
+            song=item.Song, song_size=song_label_size, \
+            artist=item.Artist, artist_search=item.Artist, \
+            album=item.Album, album_search=item.Album, \
+            info=s2(s("#",item.Track), ", ", "$stub$")))
     
     def btnNextOggLink_clicked(self):
         for i in range(self.plv.model().rowCount()):
@@ -373,7 +416,8 @@ class AuMainWindow(QtGui.QMainWindow):
             self.player.streamCreate(PlayItem(filename), \
                 is_remote=filename.startswith("http://"), callback=self.opened)
         
-#    def closeEvent(self, event):
+    def closeEvent(self, event):
+        save_settings()
 #        self.saveModelToFile("model.txt")
 #        QtCore.QCoreApplication.instance().quit()
 
@@ -397,7 +441,10 @@ class AuMainWindow(QtGui.QMainWindow):
         
         art = self.player.getId3AlbumArt()
         if art:
-            self.lblAudica.setPixmap(art)
+            self.lblAlbumArt.setPixmap(art)
+            self.lblAlbumArt.setVisible(True)
+            
+        print self.player.getStreamTags()
         
     def timerEvent(self, e):
         self.progress.value = self.player.getPosition() / self.player.getLength()
@@ -434,8 +481,20 @@ class AuMainWindow(QtGui.QMainWindow):
         (self.btnPrev, self.btnPlay, self.btnNext) \
                         [button].clicked.emit(False)
                         
+    def updatePlaylistMenu(self):
+        self.popupPlaylists.clear()
+        for i in range(self.tabs.count()):
+            act = self.popupPlaylists.addAction(self.tabs.tabText(i))
+            if self.tabs.currentIndex() == i:
+                b = QFont()
+                b.setBold(True)
+                act.setFont(b)
+            
+    def showPlaylist(self, act):
+        self.tabs.setCurrentIndex(self.popupPlaylists.actions().index(act))
                         
     def manageVolumes(self, vols, rem=False):
+        #FIXME: other platforms
         for i in vols:
             islash = i+':\\'
             if not rem:
@@ -458,7 +517,7 @@ class AuMainWindow(QtGui.QMainWindow):
         
     def winEvent(self, message):
         if message.message == WM_WINDOWPOSCHANGING:
-            stickAt = MAIN.STICKY_WINDOW_PX
+            stickAt = P.STICKY_WINDOW_PX
             pos = WINDOWPOS.from_address(message.lParam)
             mon = QApplication.desktop().availableGeometry(self)
             if abs(pos.x - mon.left()) <= stickAt:
@@ -500,13 +559,16 @@ class AuMainWindow(QtGui.QMainWindow):
 #        return overmind(self).eventFilter(obj, e) 
         
 if __name__ == '__main__':
+    if isWin32():
+        win32.SetCurrentProcessExplicitAppUserModelID('winand.audica.osap.9') #don't group
     app = QtGui.QApplication(sys.argv)
+    app.setWindowIcon(QIcon().loadIco(":/main_icon"))
 #    translator=QtCore.QTranslator()
 #    translator.load("tr-ru.qm")
 #    app.installTranslator(translator)
     bass.init()
     mainwnd = AuMainWindow()
-    if sys.platform == 'win32':
+    if isWin32():
         taskbar = itaskbarlist3.ITaskBarList3(mainwnd)
         if taskbar.isAccessible():
             icons = ((QPixmap(":/windows/taskbar_prev"), u"Previous"), \
@@ -515,7 +577,7 @@ if __name__ == '__main__':
             taskbar.ThumbBarAddButtons(icons)
             taskbar.buttonPress.connect(mainwnd.taskbar_buttonPress)
     ret = app.exec_()
-    if sys.platform == 'win32':
+    if isWin32():
         del taskbar #otherwise crashes on taskbar.__del__'s Release
     bass.destroy()
     sys.exit(ret)

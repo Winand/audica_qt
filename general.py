@@ -8,7 +8,8 @@ Created on Thu Sep 26 17:28:23 2013
 from ctypes import c_ubyte
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt4.QtCore import QUrl, QThread
-import timeit
+from PyQt4.QtGui import QIcon, QImageReader, QPixmap
+import timeit, sys
 
 class NetworkInit(QThread):
     """Don't know why but first network request is slow on my Win7x64sp1
@@ -16,25 +17,37 @@ class NetworkInit(QThread):
     def __del__(self):
         self.wait()
     def run(self):
+        wr("c:\\test2.txt",timeit.default_timer())
         QNetworkAccessManager().head(QNetworkRequest(QUrl("127.0.0.1")))
+        wr("c:\\test2.txt",timeit.default_timer())
     @staticmethod
     def init():
         global ni_th
         if not 'ni_th' in globals():
             ni_th = NetworkInit()
             ni_th.start()
-
+            
 class ddict(dict):
     "dot notation dictionary"
     def __init__(self, **items):
         super(ddict, self).__init__(items)
     def __getattr__(self, attr):
+        if attr in ('__setstate__','__getnewargs__','__getstate__'):
+            raise AttributeError
         return self.get(attr, None)
     __setattr__= dict.__setitem__
     __delattr__= dict.__delitem__
+    
+class ddictEx(ddict):
+    "ddict with KeyError exception"
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError
 
 def HourMinSec(sec):
-    m, s = divmod(round(sec), 60)
+    m, s = divmod(int(round(sec)), 60)
     if m < 60:
         return "%d:%02d" % (m,s)
     return "{0[0]}:{0[1]:02.0f}:{1:02.0f}".format(divmod(m,60), s)
@@ -43,10 +56,15 @@ def HourMinSec(sec):
 #        h, m = divmod(m, 60)
 #    return "%d:%02d:%02d" % (h, m, s) if h else "%d:%02d" % (m, s)
     
-def s(prefix, text, suffix):
+def s(prefix="", text="", postfix="", default=""):
     '''returns <prefix><text><suffix> if text isn't empty
-    otherwise returns empty string'''
-    return "".join((prefix, text, suffix)) if text else ""
+    otherwise returns default string'''
+    return "".join((prefix, text, postfix)) if text else default
+    
+def s2(prefix="", middle="", postfix=""):
+    "Разделяет prefix и postfix строкой middle, если существуют оба"
+    ret = (prefix, middle, postfix) if prefix and postfix else (prefix, postfix)
+    return "".join(ret)
     
 def sjoin(sep, *strings):
     "joins strings with sep, skips empty ones"
@@ -77,6 +95,38 @@ def wr(filename, dat):
     "simple way to put data to file"
     with file(filename, 'wb') as f:
         f.write(dat)
+        
+def divide_size(size, *parts):
+    "divide size into parts: 0 - fill free space, 0<x<1 - %, 1<=x - px"
+    sizes, fill, accum_size = [], -1, 0
+    for i, v in enumerate(parts):
+        if v < 0: raise Exception("Unknown size type")
+        elif v == 0:
+            if fill != -1: raise Exception("Only one part can fill free space")
+            fill = i
+            sizes.append(None)
+        else:
+            part_size = int(v * (size if v < 1 else 1))
+            accum_size += part_size
+            if accum_size > size: raise Exception("Maximum size exceeded")
+            sizes.append(part_size)
+    if fill != -1:
+        sizes[fill] = size - accum_size
+    return sizes
+    
+def __readIcoFile(icon, path):
+    "reads icon with all sizes"
+    ir = QImageReader(path)
+    if ir.canRead():
+        while True:
+            icon.addPixmap(QPixmap.fromImage(ir.read()))
+            if not ir.jumpToNextImage():
+                break
+    return icon
+QIcon.loadIco = __readIcoFile #patch QIcon
+
+def isWin32():
+    return sys.platform == 'win32'
 
 class FCollection_():
     def __init__(self):

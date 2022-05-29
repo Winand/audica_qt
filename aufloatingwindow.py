@@ -11,6 +11,7 @@ from general import overmind, isInside
 
 class AuFloatingWindow(QWidget):
     paint = pyqtSignal('QPainter')
+    
     def __init__(self, parent=None):
         overmind(self).__init__(parent, Qt.FramelessWindowHint|Qt.Tool)
         #self.setAttribute(Qt.WA_ShowWithoutActivating)

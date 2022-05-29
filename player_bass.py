@@ -10,12 +10,14 @@ from threading import Lock
 from bass import pybass as bass, pytags as tags
 import glob
 from playlist import PlayItem
-from general import CTypesReader, wr
+from general import CTypesReader, wr, overmind
 from struct import unpack
 from glob import iglob
 from os.path import dirname, isfile, join, splitext
 from PyQt4.QtGui import QPixmap
 from ctypes import c_float, byref
+from settings import PLAYER_BASS as P
+MULTITHREADED = False
 MIDI_SOUNDFONT = u"Scc1t2.sf2"
 BASS_CTYPE_STREAM_MIDI = 0x10d00 #bassmidi
 lock_tags = Lock()
@@ -26,8 +28,9 @@ builtInMusicFs = ("mo3", "it", "xm", "s3m", "mtm", "mod", "umx")
 builtInFormats = "*." + " *.".join(builtInStreamFs) + " *." + " *.".join(builtInMusicFs) #all built-in supported formats
 Filter = ["BASS built-in (" + builtInFormats + ")"]
     
-class Player:
+class Player(QtCore.QObject):
     def __init__(self):
+        overmind(self).__init__()
         self.__resetPlayItem() #PlayItem dummy
         self.unsync = False
     
@@ -55,9 +58,13 @@ class Player:
         thread.emit(QtCore.SIGNAL('stream_loaded(PyQt_PyObject, bool)'), self, self.p.handle != 0)
             
     def streamCreate(self, pi, offset=0, length=0, callback=None):
-        thd = GenericThread(self.__openStream, pi.path, pi.remote)
-        QtCore.QObject.connect(thd, QtCore.SIGNAL("stream_loaded(PyQt_PyObject, bool)"), callback)
-        thd.start()
+        if MULTITHREADED:
+            thd = GenericThread(self.__openStream, pi.path, pi.remote)
+            QtCore.QObject.connect(thd, QtCore.SIGNAL("stream_loaded(PyQt_PyObject, bool)"), callback)
+            thd.start()
+        else:
+            QtCore.QObject.connect(self, QtCore.SIGNAL("stream_loaded(PyQt_PyObject, bool)"), callback)
+            self.__openStream(self, pi.path, pi.remote)
         
     def streamPlay(self):
         return bass.BASS_ChannelPlay(self.p.handle, False)
@@ -195,16 +202,16 @@ class Player:
                 return pixmap
             else: print "FAILED to load album art from ID3v2"
 
-        def get_file_art(basename):
-            for f in iglob(join(dirname(self.p.path), basename+".*")):
-                if splitext(f)[1][1:] in ("jpg","jpeg","png","gif","bmp") \
-                and isfile(f):
-                    art = QPixmap(f)
-                    print "Album art loaded from %s file" % basename
-                    return art
+        def get_file_art(basenames):
+            for i in basenames:
+                for f in iglob(join(dirname(self.p.path), i+".*")):
+                    if splitext(f)[1][1:] in P.COVER_EXTS \
+                    and isfile(f):
+                        art = QPixmap(f)
+                        print "Album art loaded from %s file" % i
+                        return art
         
-        return get_id3_apic() or get_file_art("cover") or \
-                        get_file_art("folder") or get_file_art("*AlbumArt*")
+        return get_id3_apic() or get_file_art(P.COVER_FILES)
         
 def volume(): return bass.BASS_GetVolume()
 def setVolume(vol): bass.BASS_SetVolume(vol)

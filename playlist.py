@@ -12,7 +12,6 @@ from PyQt4.QtCore import QAbstractTableModel, QModelIndex, QVariant, Qt
 from PyQt4.QtGui import QItemSelectionModel, QItemSelection
 from general import HourMinSec, s, sjoin, FCollection, overmind
 import cPickle, zipfile
-selectionModel = None
 
 #def cs(s):
 #    return s.encode('cp1251', 'ignore')
@@ -56,6 +55,9 @@ class PlayListModelFS(QSortFilterProxyModel):
         
     def sort(self, column, order):
         self.sourceModel().sort(column, order)
+        
+    def modelIdxToItem(self, index):
+        return self.items[index.row()]
         
 #    def lessThan(self, left, right):
 #        it1, it2 = self.items[left.row()], self.items[right.row()]
@@ -134,7 +136,7 @@ class PlayListModel(QAbstractTableModel):
 #                    return item.l_timing
 #                if item.remote: return "i"
         elif role == Qt.ForegroundRole:
-            if row == 2:
+            if row == self.playing:
                 return QBrush(QColor(Qt.red))
 #        elif role == Qt.BackgroundRole:
 #            if row % 2:
@@ -216,9 +218,14 @@ class PlayListModel(QAbstractTableModel):
         self.items.setFilter(text, PlayItem.sort_song, PlayItem.sort_artist, \
                                     PlayItem.filt_album, PlayItem.sort_path)
         self.layoutChanged.emit()
+        
+    def modelIdxToItem(self, index):
+        return self.items[index.row()]
             
 class PlayItem(object):
     VERSION = 77 #check if we load (unpickle) right version of class
+    handle = 0
+    stream = True
     
     m_timing = 0
     l_timing = ''
@@ -354,7 +361,7 @@ class PlaylistSet():
                     lists[i].chooseMethod = dat[i][1]  
                     lists[i].playing = dat[i][2]
                     lists[i].items = dat[i][3]
-                self.lists = [PlayListModelFS(i) for i in lists]#lists
+                self.lists = lists#[PlayListModelFS(i) for i in lists]#
 #        except zipfile.BadZipfile:
 #            self.lists = self.loadOldFormat(filepath)
 #        except:

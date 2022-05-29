@@ -172,3 +172,5 @@ def getVolumeInformation(letter):
     vserial = DWORD()
     windll.kernel32.GetVolumeInformationW(letter+u':\\', buf, len(buf), byref(vserial),0,0,0,0)
     return buf.value, vserial.value
+    
+SetCurrentProcessExplicitAppUserModelID = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID

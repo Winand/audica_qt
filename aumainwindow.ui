@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>471</width>
+    <width>568</width>
     <height>479</height>
    </rect>
   </property>
@@ -19,6 +19,34 @@
      <number>0</number>
     </property>
     <item>
+     <widget class="QPushButton" name="btnNextOggLink">
+      <property name="text">
+       <string>&gt;</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="btnFileOpen">
+      <property name="text">
+       <string>Open</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="btnPrevOggLink">
+      <property name="text">
+       <string>&lt;</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSlider" name="sldProgress">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QWidget" name="header" native="true">
       <property name="minimumSize">
        <size>
@@ -26,132 +54,106 @@
         <height>111</height>
        </size>
       </property>
-      <widget class="QSlider" name="sldProgress">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>40</y>
-         <width>251</width>
-         <height>19</height>
-        </rect>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="btnFileOpen">
-       <property name="geometry">
-        <rect>
-         <x>50</x>
-         <y>0</y>
-         <width>75</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Open</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="btnNextOggLink">
-       <property name="geometry">
-        <rect>
-         <x>130</x>
-         <y>0</y>
-         <width>31</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>&gt;</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="lbltags">
-       <property name="geometry">
-        <rect>
-         <x>270</x>
-         <y>0</y>
-         <width>181</width>
-         <height>111</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>TextLabel</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="btnPrevOggLink">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>0</y>
-         <width>31</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>&lt;</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="lblAudica">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>15</y>
-         <width>321</width>
-         <height>71</height>
-        </rect>
-       </property>
-       <property name="palette">
-        <palette>
-         <active>
-          <colorrole role="WindowText">
-           <brush brushstyle="SolidPattern">
-            <color alpha="255">
-             <red>227</red>
-             <green>227</green>
-             <blue>227</blue>
-            </color>
-           </brush>
-          </colorrole>
-         </active>
-         <inactive>
-          <colorrole role="WindowText">
-           <brush brushstyle="SolidPattern">
-            <color alpha="255">
-             <red>227</red>
-             <green>227</green>
-             <blue>227</blue>
-            </color>
-           </brush>
-          </colorrole>
-         </inactive>
-         <disabled>
-          <colorrole role="WindowText">
-           <brush brushstyle="SolidPattern">
-            <color alpha="255">
-             <red>120</red>
-             <green>120</green>
-             <blue>120</blue>
-            </color>
-           </brush>
-          </colorrole>
-         </disabled>
-        </palette>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>56</pointsize>
-         <weight>75</weight>
-         <bold>true</bold>
-         <stylestrategy>PreferDefault</stylestrategy>
-        </font>
-       </property>
-       <property name="text">
-        <string notr="true">AUDICA</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QLabel" name="lblAlbumArt">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lbltags">
+         <property name="font">
+          <font>
+           <family>Verdana</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head&gt;
+&lt;style type=&quot;text/css&quot;&gt;
+a {
+    color:black;
+    text-decoration: none;
+}
+&lt;/style&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;a href=&quot;filter://scorpions&quot;&gt;This will work&lt;/a&gt; &lt;a href=&quot;web://scorpions&quot;&gt;&lt;img src=&quot;:/icon_web&quot;/&gt;&lt;/a&gt;.
+&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblAudica">
+         <property name="palette">
+          <palette>
+           <active>
+            <colorrole role="WindowText">
+             <brush brushstyle="SolidPattern">
+              <color alpha="255">
+               <red>227</red>
+               <green>227</green>
+               <blue>227</blue>
+              </color>
+             </brush>
+            </colorrole>
+           </active>
+           <inactive>
+            <colorrole role="WindowText">
+             <brush brushstyle="SolidPattern">
+              <color alpha="255">
+               <red>227</red>
+               <green>227</green>
+               <blue>227</blue>
+              </color>
+             </brush>
+            </colorrole>
+           </inactive>
+           <disabled>
+            <colorrole role="WindowText">
+             <brush brushstyle="SolidPattern">
+              <color alpha="255">
+               <red>120</red>
+               <green>120</green>
+               <blue>120</blue>
+              </color>
+             </brush>
+            </colorrole>
+           </disabled>
+          </palette>
+         </property>
+         <property name="font">
+          <font>
+           <family>Verdana</family>
+           <pointsize>57</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+           <stylestrategy>PreferDefault</stylestrategy>
+          </font>
+         </property>
+         <property name="text">
+          <string notr="true">AUDICA</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblInfo">
+         <property name="font">
+          <font>
+           <family>Verdana</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
@@ -1173,7 +1175,7 @@
            <string>Main menu</string>
           </property>
           <property name="text">
-           <string>Functions</string>
+           <string> Functions</string>
           </property>
           <property name="popupMode">
            <enum>QToolButton::InstantPopup</enum>
@@ -1237,7 +1239,7 @@
            <string>Repeat single track</string>
           </property>
           <property name="text">
-           <string>S</string>
+           <string> S</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -1301,7 +1303,71 @@
            <string>Open specified folder</string>
           </property>
           <property name="text">
-           <string>F</string>
+           <string> F</string>
+          </property>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="AuToolButton" name="btnPlaylists">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="palette">
+           <palette>
+            <active>
+             <colorrole role="ButtonText">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>0</red>
+                <green>85</green>
+                <blue>127</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </active>
+            <inactive>
+             <colorrole role="ButtonText">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>0</red>
+                <green>85</green>
+                <blue>127</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </inactive>
+            <disabled>
+             <colorrole role="ButtonText">
+              <brush brushstyle="SolidPattern">
+               <color alpha="255">
+                <red>120</red>
+                <green>120</green>
+                <blue>120</blue>
+               </color>
+              </brush>
+             </colorrole>
+            </disabled>
+           </palette>
+          </property>
+          <property name="font">
+           <font>
+            <underline>true</underline>
+           </font>
+          </property>
+          <property name="toolTip">
+           <string>Playlist menu</string>
+          </property>
+          <property name="text">
+           <string> P</string>
           </property>
           <property name="popupMode">
            <enum>QToolButton::InstantPopup</enum>
@@ -1390,11 +1456,17 @@
 	gridline-color: #f0f0f0;
 }</string>
         </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
         <property name="alternatingRowColors">
          <bool>true</bool>
         </property>
         <property name="selectionBehavior">
          <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+        <property name="verticalScrollMode">
+         <enum>QAbstractItemView::ScrollPerPixel</enum>
         </property>
         <property name="sortingEnabled">
          <bool>true</bool>
@@ -1492,7 +1564,7 @@
          <string>Add files</string>
         </property>
         <property name="text">
-         <string>...</string>
+         <string> ...</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -1547,7 +1619,7 @@
          <string>Random</string>
         </property>
         <property name="text">
-         <string>R</string>
+         <string> R</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -1599,10 +1671,10 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>Default - files opend with Audica will be added here</string>
+         <string>Default - files opened with Audica will be added here</string>
         </property>
         <property name="text">
-         <string>D</string>
+         <string> D</string>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -1658,7 +1730,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>471</width>
+     <width>568</width>
      <height>21</height>
     </rect>
    </property>
@@ -1669,7 +1741,7 @@
     <addaction name="action8"/>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="main_menu">
+   <widget class="QMenu" name="popup_main_menu">
     <property name="title">
      <string>&lt;main_menu&gt;</string>
     </property>
@@ -1681,8 +1753,28 @@
     <addaction name="separator"/>
     <addaction name="actionAbout_Audica"/>
    </widget>
+   <widget class="QMenu" name="popupPlaylists">
+    <property name="title">
+     <string>&lt;playlists&gt;</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="popup_web_info">
+    <property name="title">
+     <string>&lt;web_info&gt;</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="popupPlaylist">
+    <property name="title">
+     <string>&lt;playlist&gt;</string>
+    </property>
+    <addaction name="actionDelete"/>
+    <addaction name="actionRename"/>
+   </widget>
    <addaction name="popupFolders"/>
-   <addaction name="main_menu"/>
+   <addaction name="popup_main_menu"/>
+   <addaction name="popupPlaylists"/>
+   <addaction name="popupPlaylist"/>
+   <addaction name="popup_web_info"/>
   </widget>
   <action name="action_volume0">
    <property name="text">
@@ -1724,6 +1816,26 @@
     <string>About Audica</string>
    </property>
   </action>
+  <action name="actionLast_fm">
+   <property name="text">
+    <string>Last.fm</string>
+   </property>
+  </action>
+  <action name="actionTest">
+   <property name="text">
+    <string>test</string>
+   </property>
+  </action>
+  <action name="actionDelete">
+   <property name="text">
+    <string>Delete</string>
+   </property>
+  </action>
+  <action name="actionRename">
+   <property name="text">
+    <string>Rename</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1758,10 +1870,16 @@
    <class>AuPlaylistView</class>
    <extends>QTableView</extends>
    <header>main</header>
+   <slots>
+    <signal>resized()</signal>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources>
   <include location="res/res.qrc"/>
  </resources>
  <connections/>
+ <slots>
+  <slot>playlist_resize()</slot>
+ </slots>
 </ui>

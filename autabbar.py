@@ -5,10 +5,10 @@ Created on Thu Oct 03 21:58:47 2013
 @author: Winand
 """
 
-from PyQt4.QtCore import Qt, QPoint, QEvent, QEasingCurve, QVariantAnimation
+from PyQt4.QtCore import Qt, QPoint, QEvent, QEasingCurve, QVariantAnimation, pyqtSignal
 from PyQt4.QtGui import QTabBar, QPainter, QPen, QColor, QWidget, QLineEdit
 from general import overmind
-from settings import TABBAR
+from settings import TABBAR as P
 
 P_LEFT, P_RIGHT = 0, 1
 def rcPart(pt, rc):
@@ -24,6 +24,8 @@ class AuAnimStub(QVariantAnimation):
     def updateState(self, newState, oldState): self.parent().update()
 
 class AuTabBar(QTabBar):
+    changed = pyqtSignal() #called on insert/remove/reorder tabs
+    
     def __init__(self, parent=None):
         overmind(self).__init__(parent)
         self.setMovable(True)
@@ -34,12 +36,14 @@ class AuTabBar(QTabBar):
         self.editor.hide()
         self.editor.setAlignment(Qt.AlignHCenter)
         self.editor.installEventFilter(self)
+        self.tabMoved.connect(lambda from_,to:self.changed.emit())
+        self.currentChanged.connect(lambda index:self.changed.emit())
     
     def __paint_line(self, w, rc):
         p = QPainter(w)
         pen = QPen()
         pen.setWidth(2)
-        pen.setColor(QColor(TABBAR.ACTIVE_LINE))
+        pen.setColor(QColor(P.ACTIVE_LINE))
         p.setPen(pen)
         p.drawLine(rc.topLeft(), rc.topRight())
     
@@ -80,6 +84,9 @@ class AuTabBar(QTabBar):
     def mousePressEvent(self, e):
         self.editor.hide()
         overmind(self).mousePressEvent(e)
+        
+    def tabInserted(self, index): self.changed.emit()
+    def tabRemoved(self, index): self.changed.emit()
                 
     def eventFilter(self, obj, e):
         if obj == self.editor:

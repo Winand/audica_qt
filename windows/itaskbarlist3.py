@@ -170,3 +170,39 @@ class ITaskBarList3(QObject):
 #
 #ret = app.exec_()
 #del app
+
+
+import PyQt4.QtGui, sys
+class mainWnd(PyQt4.QtGui.QMainWindow):
+    WM_COMMAND = 0x0111
+    def winEvent(self, message):
+        if message.message == self.WM_COMMAND:
+            if message.wParam >> 16 == THBN_CLICKED:
+                print message.wParam & 0xffff
+#        elif message.message == WA_TASKBARCREATED:
+#            print "WA_TASKBARCREATED"
+        elif message.message == WM_DWMSENDICONICTHUMBNAIL:
+            print "iconic"
+        return PyQt4.QtGui.QMainWindow.winEvent(self, message)
+        
+app = PyQt4.QtGui.QApplication(sys.argv)
+mainwnd = mainWnd()
+mainwnd.show()
+wnd = int(mainwnd.winId())
+
+taskbar = ITaskBarList3(mainwnd)
+taskbar.SetProgressValue(wnd, 5, 10)
+taskbar.SetProgressState(wnd, TBPFLAG.TBPF_ERROR)
+#pr = QPixmap('../res/win_taskbar_prev2.ico')
+#ps = QPixmap('../res/win_taskbar_pause.ico')
+#nx = QPixmap('../res/win_taskbar_next2.ico')
+#pl = QPixmap('../res/win_taskbar_play1.ico')
+#icons = (pr, ps, nx,)
+#tips = (u"Previous", u"Play", u"Next")
+#taskbar.ThumbBarAddButtons(zip(icons, tips))
+#taskbar.SetOverlayIcon(wnd, int(pl.toWinHICON()), u'Oh, wow')
+#taskbar.SetThumbnailTooltip(wnd, u'Oh, just wow')
+#del taskbar
+
+ret = app.exec_()
+del app
