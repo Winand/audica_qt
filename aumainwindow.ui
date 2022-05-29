@@ -1349,31 +1349,17 @@
        <widget class="AuTreeView" name="plv"/>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QToolButton" name="toolButton">
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-          <property name="arrowType">
-           <enum>Qt::DownArrow</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="AuTabBar" name="tabs" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">QTabBar::tab { height: 25px; }</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="AuTabBar" name="tabs" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>25</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QTabBar::tab { height: 25px; }</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

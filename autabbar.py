@@ -33,11 +33,10 @@ class AuTabBar(QTabBar):
         p.setPen(pen)
         p.drawLine(rc.topLeft(), rc.topRight())
     
-    def paintEvent(self, e):
-        overmind(self).paintEvent(e)
-        if not self.movingWidgetVisible:
-            print "?"
-            self.__paint_line(self, self.tabRect(self.currentIndex()).adjusted(0,1,1,0))
+#    def paintEvent(self, e):
+#        overmind(self).paintEvent(e)
+#        if not self.movingWidgetVisible:
+#            self.__paint_line(self, self.tabRect(self.currentIndex()).adjusted(0,1,1,0))
         
     def tabData(self, index):
         return overmind(self).tabData(index).toPyObject()[0]
@@ -66,10 +65,11 @@ class AuTabBar(QTabBar):
             self.__paint_line(obj, obj.rect().adjusted(2,1,-1,0))
             return True
         elif e.type() == QEvent.Hide:
-            print "hide"
             self.movingWidgetVisible = False
         elif e.type() == QEvent.Show:
             self.movingWidgetVisible = True
+        else:
+            print e.type()
         return overmind(self).eventFilter(obj, e)
 
 #class AuTabBar(QTabBar):

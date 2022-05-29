@@ -7,7 +7,7 @@ Created on Thu Sep 26 17:28:23 2013
 
 from ctypes import c_ubyte
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt4.QtCore import QUrl, QThread, QPoint
+from PyQt4.QtCore import QUrl, QThread
 
 class NetworkInit(QThread):
     """Don't know why but first network request is slow on my Win7x64sp1
@@ -41,11 +41,6 @@ def HourMinSec(sec):
 #    if m >= 60:
 #        h, m = divmod(m, 60)
 #    return "%d:%02d:%02d" % (h, m, s) if h else "%d:%02d" % (m, s)
-    
-def pointToRect(pt, rc):
-    x = min(max(pt.x(), rc.left()), rc.right())
-    y = min(max(pt.y(), rc.top()), rc.bottom())
-    return QPoint(x, y)
     
 def s(prefix, text, suffix):
     '''returns <prefix><text><suffix> if text isn't empty
